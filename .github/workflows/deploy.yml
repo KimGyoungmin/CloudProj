@@ -16,10 +16,12 @@ jobs:
     
     steps:
       - name: Checkout repository
+        # uses : 기능을 만든사람 / 기능@버전
         uses: actions/checkout@v3
 # java 버전 설정
       - name: Set up JDK 17
         uses: actions/setup-java@v3
+        # with: 매개변수 개념 (키 값 쌍)
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -36,6 +38,7 @@ jobs:
       - name: Copy JAR to Public Server
         uses: appleboy/scp-action@v0.1.7
         with:
+          # host : ip주소
           host: ${{ secrets.PUBLIC_HOST }}
           username: root
           key: ${{ secrets.PUBLIC_SSH_KEY }}
