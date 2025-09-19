@@ -1,0 +1,65 @@
+# Action 파일 제목
+name: Spring Boot Gradle CI/CD
+
+# 어디에 올릴 건지
+on:
+  push:
+    branches: ["main"]
+  # 수동으로 Action 실행할 수 있게 해주는 옵션
+  workflow_dispatch:
+
+# 진행할 내용 
+jobs:
+  # build, 배포에 활용되는 환경 잡아주기
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+# java 버전 설정
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+# gradle 모듈 설치
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+# gradle 기능 사용권한 부여
+      - name: Grant execute permission for Gradlew
+        run: chmod +x ./gradlew
+# gradle 기능 사용하여 jar 빌드
+      - name: Build JAR with Gradle
+        run: ./gradlew clean bootJar -x test
+# build 완료된 jar 파일 public server에 전달
+      - name: Copy JAR to Public Server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PUBLIC_HOST }}
+          username: root
+          key: ${{ secrets.PUBLIC_SSH_KEY }}
+          source: |
+            build/libs/*SNAPSHOT.jar
+          target: /root/app/
+# deploy_private.sh파일 public server에 전달          
+      - name: Copy deploy script to Public Server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PUBLIC_HOST }}
+          username: root
+          key: ${{ secrets.PUBLIC_SSH_KEY }}
+          source: |
+            deploy_private.sh
+          target: /root/app/
+
+# deploy_private.sh파일 실행
+      - name: Execute deploy_private.sh on Public Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PUBLIC_HOST }}
+          username: root
+          key: ${{ secrets.PUBLIC_SSH_KEY }}
+          script: |
+            chmod +x /root/app/deploy_private.sh
+            /root/app/deploy_private.sh
